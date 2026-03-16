@@ -60,6 +60,7 @@ namespace aims
                 render_frame();
 
                 ImGui::Render();
+                ImGui::UpdatePlatformWindows();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
                 SDL_GL_SwapWindow(graphics_context->window);
             }

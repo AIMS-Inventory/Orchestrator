@@ -40,18 +40,21 @@ set(IMGUI_SOURCES
 # compile imgui as a lib
 add_library(imgui STATIC ${IMGUI_SOURCES})
 
+# add sdl to imgui
+target_link_libraries(imgui PRIVATE sdl::sdl)
+
 add_executable(AimsOrchestrator ${SOURCES} extern/gl.c)
 
 # link imgui
 target_link_libraries(AimsOrchestrator PRIVATE imgui)
 
 # link cv
-target_include_directories(AimsOrchestrator PRIVATE ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(AimsOrchestrator PRIVATE ${OpenCV_LIBS})
+#target_include_directories(AimsOrchestrator PRIVATE opencv::opencv)
+target_link_libraries(AimsOrchestrator PRIVATE opencv::opencv)
 
 #SDL3 link
-target_include_directories(AimsOrchestrator PRIVATE ${SDL3_INCLUDE_DIRS})
-target_link_libraries(AimsOrchestrator PRIVATE ${SDL3_LIBRARIES})
+#target_include_directories(AimsOrchestrator PRIVATE sdl::sdl)
+target_link_libraries(AimsOrchestrator PRIVATE sdl::sdl)
 
 set_target_properties(AimsOrchestrator PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 
