@@ -21,7 +21,7 @@ namespace aims
         void run();
         void shutdown();
 
-        void cv_display_test();
+        void add_camera_view(const std::string& cam_id);
 
         std::shared_ptr<View> get_view(std::string id);
         void push_view(const std::shared_ptr<View>& view);

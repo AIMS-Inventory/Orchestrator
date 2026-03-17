@@ -11,6 +11,8 @@ set(SOURCES
     src/Orchestrator.hpp
     src/graphics/View.cpp
     src/graphics/View.hpp
+    src/io/FileIo.cpp
+    src/io/FileIo.hpp
 )
 
 include_directories(extern/glad)
@@ -21,6 +23,8 @@ include_directories(extern/imgui)
 find_package(SDL3 REQUIRED)
 # CV
 find_package(OpenCV REQUIRED)
+# rapidYaml
+find_package(ryml REQUIRED)
 
 #IMGui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extern/imgui")
@@ -45,6 +49,19 @@ target_link_libraries(imgui PRIVATE sdl::sdl)
 
 add_executable(AimsOrchestrator ${SOURCES} extern/gl.c)
 
+# copy runtime resources
+set(AIMS_ORCHESTRATOR_RESOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources")
+set(AIMS_ORCHESTRATOR_RUNTIME_RESOURCES_DIR "$<TARGET_FILE_DIR:AimsOrchestrator>/resources")
+
+add_custom_command(
+    TARGET AimsOrchestrator POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${AIMS_ORCHESTRATOR_RESOURCES_DIR}"
+            "${AIMS_ORCHESTRATOR_RUNTIME_RESOURCES_DIR}"
+    COMMENT "Copying resources to the runtime output directory"
+    VERBATIM
+)
+
 # link imgui
 target_link_libraries(AimsOrchestrator PRIVATE imgui)
 
@@ -55,6 +72,9 @@ target_link_libraries(AimsOrchestrator PRIVATE opencv::opencv)
 #SDL3 link
 #target_include_directories(AimsOrchestrator PRIVATE sdl::sdl)
 target_link_libraries(AimsOrchestrator PRIVATE sdl::sdl)
+
+# rapidYaml link
+target_link_libraries(AimsOrchestrator PRIVATE ryml::ryml)
 
 set_target_properties(AimsOrchestrator PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 

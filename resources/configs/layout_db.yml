@@ -1,0 +1,8 @@
+# TODO: fill these with real codes once we get a shelf prototype.
+shelves:
+  - name: A1
+    codes: {top_left: 1, top_right: 2, bottom_left: 3, bottom_right: 4}
+  - name: A2
+    codes: {top_left: 1, top_right: 2, bottom_left: 3, bottom_right: 4}
+  - name: B1
+    codes: {top_left: 1, top_right: 2, bottom_left: 3, bottom_right: 4}

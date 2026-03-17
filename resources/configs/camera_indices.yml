@@ -1,0 +1,7 @@
+# for adding more cams, simply type its name and the opencv- camera index associated.
+
+cams:
+  - name: default
+    index: 1
+  - name: overhead
+    index: 0

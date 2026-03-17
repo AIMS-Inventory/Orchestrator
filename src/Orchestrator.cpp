@@ -12,6 +12,7 @@
 #include "graphics/GraphicsInitialize.hpp"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/backends/imgui_impl_sdl3.h"
+#include "io/FileIo.hpp"
 
 namespace aims
 {
@@ -32,8 +33,7 @@ namespace aims
             graphics_context = std::make_shared<aims_graphx::GraphicsContext>(graphx_result.value());
             has_graphics_context = true;
         }
-
-        cv_display_test();
+        aims::load_cameras();
     }
 
     void Orchestrator::run() {
@@ -68,6 +68,8 @@ namespace aims
     }
 
     void Orchestrator::render_frame() {
+        add_camera_view("default");
+        add_camera_view("overhead");
         ImGuiWindowFlags root_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
@@ -134,12 +136,16 @@ namespace aims
 
     std::shared_ptr<View> Orchestrator::get_view(std::string id) {
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        for (const auto& view : views) {
-            if (view->get_id() == id) {
-                return view;
-            }
+        auto result = std::ranges::find_if(views, [&id](auto view) {
+            return view->get_id() == id;
+        });
+        if (result == views.end()) {
+            auto view = std::make_shared<View>(id);
+            views.push_back(view);
+            return view;
+        } else {
+            return *result;
         }
-        return nullptr;
     }
 
     void Orchestrator::push_view(const std::shared_ptr<View>& view) {
@@ -154,11 +160,28 @@ namespace aims
                     views.end());
     }
 
-    void Orchestrator::cv_display_test() {
-        cv::Mat test_image(512, 512, CV_8UC3, cv::Scalar(255, 0, 0));
-        auto view = std::make_shared<View>("test_view");
+    void Orchestrator::add_camera_view(const std::string& camera_id) {
+        std::shared_ptr<cv::VideoCapture> cap = aims::get_camera(camera_id);
+        if (!cap->isOpened()) {
+            std::print("Failed to open webcam\n");
+            return;
+        }
+
+        cv::Mat test_image;
+
+        int retry_count = 0;
+        while (test_image.empty() && retry_count < 10) {
+            cap->read(test_image);
+            retry_count++;
+        }
+
+        if (test_image.empty()) {
+            std::print("Error: Grabbed an empty frame from the camera.\n");
+            return;
+        }
+
+        auto view = get_view("Camera: "+camera_id+ " Debug Output");
         view->new_from_cv(test_image);
-        push_view(view);
     }
 
     void Orchestrator::shutdown() {
