@@ -201,7 +201,7 @@ namespace aims
             return;
         }
 
-        auto view = get_view("Camera: "+cam_input->get_camera_id()+ " Debug Output");
+        auto view = cam_input->get_view();
         view->new_from_cv(test_image);
     }
 
