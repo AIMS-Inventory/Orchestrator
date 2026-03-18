@@ -15,6 +15,11 @@ set(SOURCES
     src/io/FileIo.hpp
     src/io/CameraInput.cpp
     src/io/CameraInput.hpp
+    src/events/Event.hpp
+    src/events/GlobalEventTable.cpp
+    src/events/GlobalEventTable.hpp
+    src/models/KnownBox.cpp
+    src/models/KnownBox.hpp
 )
 
 include_directories(extern/glad)

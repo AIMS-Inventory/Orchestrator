@@ -1,0 +1,7 @@
+boxes:
+  - name: "Box of ibuprofen"
+    code: 7
+  - name: "Box of band-aids"
+    code: 8
+  - name: "Box of tissues"
+    code: 9
