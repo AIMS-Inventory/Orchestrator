@@ -17,4 +17,5 @@ namespace aims {
     void load_cameras();
     ryml::Tree parse_config(const std::string &path);
     std::shared_ptr<cv::VideoCapture> get_camera(std::string camera_name);
+    std::vector<std::string> enumerate_cams();
 }

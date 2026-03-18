@@ -82,4 +82,14 @@ namespace aims {
         }
     }
 
+    std::vector<std::string> enumerate_cams() {
+        std::vector<std::string> cam_list;
+        for (const auto& [name, cap] : cameras) {
+            if (cap && cap->isOpened()) {
+                cam_list.emplace_back(name);
+            }
+        }
+        return cam_list;
+    }
+
 }
