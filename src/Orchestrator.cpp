@@ -6,12 +6,14 @@
 #include "glad/gl.h"
 
 #include <print>
+#include <thread>
 #include <SDL3/SDL.h>
 
 #include "imgui_internal.h"
 #include "graphics/GraphicsInitialize.hpp"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/backends/imgui_impl_sdl3.h"
+#include "io/CameraInput.hpp"
 #include "io/FileIo.hpp"
 
 namespace aims
@@ -37,10 +39,17 @@ namespace aims
     }
 
     void Orchestrator::run() {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
+        std::shared_ptr<aims::View> view = get_view("default");
+        std::shared_ptr<aims::CameraInput> cam_input = std::make_shared<aims::CameraInput>(view, "default");
+        std::thread([cam_input, this]() {
+            while (should_run) {
+                add_camera_view(cam_input);
+            }
+        }).detach();
 
         while (should_run) {
-            if (has_graphics_context) {
+            auto context = get_graphics_context();
+            if (context) {
                 SDL_Event event;
                 while (SDL_PollEvent(&event)) {
                     ImGui_ImplSDL3_ProcessEvent(&event);
@@ -62,14 +71,12 @@ namespace aims
                 ImGui::Render();
                 ImGui::UpdatePlatformWindows();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-                SDL_GL_SwapWindow(graphics_context->window);
+                SDL_GL_SwapWindow(context->window);
             }
         }
     }
 
     void Orchestrator::render_frame() {
-        add_camera_view("default");
-        add_camera_view("overhead");
         ImGuiWindowFlags root_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
@@ -106,24 +113,38 @@ namespace aims
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         if (ImGui::Begin("Options")) {
-            if (ImGui::BeginCombo("View", active_view ? active_view->get_id().c_str() : "Select View")) {
-                for (const auto& view : views) {
-                    bool is_selected = (active_view && view->get_id() == active_view->get_id());
-                    if (ImGui::Selectable(view->get_id().c_str(), is_selected)) {
-                        active_view = view;
+            auto current_active_view = get_active_view();
+            const std::string current_active_label = current_active_view ? current_active_view->get_id() : "Select View";
+
+            if (ImGui::BeginCombo("View", current_active_label.c_str())) {
+                auto current_views = get_views_snapshot();
+                std::shared_ptr<View> selected_view = current_active_view;
+
+                for (const auto& view : current_views) {
+                    const auto view_id = view->get_id();
+                    const bool is_selected = (current_active_view && view_id == current_active_view->get_id());
+                    if (ImGui::Selectable(view_id.c_str(), is_selected)) {
+                        selected_view = view;
                     }
                     if (is_selected) {
                         ImGui::SetItemDefaultFocus();
                     }
                 }
+
+                if (selected_view != current_active_view) {
+                    set_active_view(selected_view);
+                    current_active_view = selected_view;
+                }
+
                 ImGui::EndCombo();
             }
         }
         ImGui::End();
 
         if (ImGui::Begin("Preview")) {
-            if (active_view) {
-                auto texture_handle = active_view->get_texture();
+            auto current_active_view = get_active_view();
+            if (current_active_view) {
+                auto texture_handle = current_active_view->get_texture();
                 ImGui::Image((void*)(intptr_t)texture_handle.texture, ImVec2(512, 512));
             } else {
                 ImGui::Text("No active view selected.");
@@ -160,8 +181,8 @@ namespace aims
                     views.end());
     }
 
-    void Orchestrator::add_camera_view(const std::string& camera_id) {
-        std::shared_ptr<cv::VideoCapture> cap = aims::get_camera(camera_id);
+    void Orchestrator::add_camera_view(const std::shared_ptr<CameraInput>& cam_input) {
+        std::shared_ptr<cv::VideoCapture> cap = cam_input->get_camera();
         if (!cap->isOpened()) {
             std::print("Failed to open webcam\n");
             return;
@@ -180,13 +201,33 @@ namespace aims
             return;
         }
 
-        auto view = get_view("Camera: "+camera_id+ " Debug Output");
+        auto view = get_view("Camera: "+cam_input->get_camera_id()+ " Debug Output");
         view->new_from_cv(test_image);
     }
 
     void Orchestrator::shutdown() {
         std::lock_guard<std::recursive_mutex> lock(mutex);
         aims_graphx::destroy(graphics_context);
+    }
+
+    std::vector<std::shared_ptr<View>> Orchestrator::get_views_snapshot() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return views;
+    }
+
+    std::shared_ptr<View> Orchestrator::get_active_view() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return active_view;
+    }
+
+    void Orchestrator::set_active_view(const std::shared_ptr<View>& view) {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        active_view = view;
+    }
+
+    std::shared_ptr<aims_graphx::GraphicsContext> Orchestrator::get_graphics_context() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return has_graphics_context ? graphics_context : nullptr;
     }
 
     Orchestrator* Orchestrator::get_instance() {

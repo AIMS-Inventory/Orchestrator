@@ -3,11 +3,14 @@
 //
 
 #pragma once
+#include <atomic>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 #include "graphics/GraphicsInitialize.hpp"
 #include "graphics/View.hpp"
+#include "io/CameraInput.hpp"
 
 namespace aims
 {
@@ -21,7 +24,7 @@ namespace aims
         void run();
         void shutdown();
 
-        void add_camera_view(const std::string& cam_id);
+        void add_camera_view(const std::shared_ptr<CameraInput>& cam_input);
 
         std::shared_ptr<View> get_view(std::string id);
         void push_view(const std::shared_ptr<View>& view);
@@ -29,12 +32,18 @@ namespace aims
 
         static Orchestrator* get_instance();
     protected:
+        std::vector<std::shared_ptr<View>> get_views_snapshot();
+        std::shared_ptr<View> get_active_view();
+        void set_active_view(const std::shared_ptr<View>& view);
+        std::shared_ptr<aims_graphx::GraphicsContext> get_graphics_context();
+
         mutable std::recursive_mutex mutex;
 
         static Orchestrator* instance;
         std::shared_ptr<aims_graphx::GraphicsContext> graphics_context;
         bool has_graphics_context = false;
-        bool should_run = true;
+        std::atomic<bool> should_run = true;
+
         std::shared_ptr<View> active_view;
         std::vector<std::shared_ptr<View>> views;
     };

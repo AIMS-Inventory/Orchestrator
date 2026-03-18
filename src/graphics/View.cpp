@@ -15,11 +15,17 @@ namespace aims
 
     void View::new_from_cv(const cv::Mat& mat) {
         std::lock_guard<std::recursive_mutex> lock(mutex);
-        texture = aims_graphx::upload_rgb(aims_graphx::mat_to_rgbtex(mat), view_id+"_vt"); // short for viewtex
+        dirty_flag_gpu = true;
+        rgb_texture = aims_graphx::mat_to_rgbtex(mat);
     }
 
-    aims_graphx::GpuTextureHandle View::get_texture() const {
+    aims_graphx::GpuTextureHandle View::get_texture() {
         std::lock_guard<std::recursive_mutex> lock(mutex);
+        if (!dirty_flag_gpu) {
+            return texture;
+        }
+
+        texture = aims_graphx::upload_rgb(rgb_texture, view_id);
         return texture;
     }
 

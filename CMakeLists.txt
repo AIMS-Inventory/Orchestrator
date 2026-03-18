@@ -13,6 +13,8 @@ set(SOURCES
     src/graphics/View.hpp
     src/io/FileIo.cpp
     src/io/FileIo.hpp
+    src/io/CameraInput.cpp
+    src/io/CameraInput.hpp
 )
 
 include_directories(extern/glad)
