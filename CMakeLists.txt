@@ -16,10 +16,14 @@ set(SOURCES
     src/io/CameraInput.cpp
     src/io/CameraInput.hpp
     src/events/Event.hpp
-    src/events/GlobalEventTable.cpp
-    src/events/GlobalEventTable.hpp
     src/models/KnownBox.cpp
     src/models/KnownBox.hpp
+    src/events/PythonEvents.cpp
+    src/events/PythonEvents.hpp
+    src/events/PythonEventRegistrar.cpp
+    src/events/PythonEventRegistrar.hpp
+    src/events/DebugEventUI.cpp
+    src/events/DebugEventUI.hpp
 )
 
 include_directories(extern/glad)
@@ -32,6 +36,10 @@ find_package(SDL3 REQUIRED)
 find_package(OpenCV REQUIRED)
 # rapidYaml
 find_package(ryml REQUIRED)
+
+set(PYBIND11_FINDPYTHON ON)
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 CONFIG REQUIRED)
 
 #IMGui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extern/imgui")
@@ -60,14 +68,26 @@ add_executable(AimsOrchestrator ${SOURCES} extern/gl.c)
 set(AIMS_ORCHESTRATOR_RESOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources")
 set(AIMS_ORCHESTRATOR_RUNTIME_RESOURCES_DIR "$<TARGET_FILE_DIR:AimsOrchestrator>/resources")
 
+file(GLOB_RECURSE AIMS_ORCHESTRATOR_RESOURCE_FILES
+    CONFIGURE_DEPENDS
+    "${AIMS_ORCHESTRATOR_RESOURCES_DIR}/*"
+)
+
+set(AIMS_ORCHESTRATOR_RESOURCE_STAMP "${CMAKE_CURRENT_BINARY_DIR}/resources-sync.stamp")
+
 add_custom_command(
-    TARGET AimsOrchestrator POST_BUILD
+    OUTPUT "${AIMS_ORCHESTRATOR_RESOURCE_STAMP}"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${AIMS_ORCHESTRATOR_RESOURCES_DIR}"
             "${AIMS_ORCHESTRATOR_RUNTIME_RESOURCES_DIR}"
-    COMMENT "Copying resources to the runtime output directory"
+    COMMAND ${CMAKE_COMMAND} -E touch "${AIMS_ORCHESTRATOR_RESOURCE_STAMP}"
+    DEPENDS ${AIMS_ORCHESTRATOR_RESOURCE_FILES}
+    COMMENT "Syncing resources to the runtime output directory"
     VERBATIM
 )
+
+add_custom_target(sync_resources DEPENDS "${AIMS_ORCHESTRATOR_RESOURCE_STAMP}")
+add_dependencies(AimsOrchestrator sync_resources)
 
 # link imgui
 target_link_libraries(AimsOrchestrator PRIVATE imgui)
@@ -82,6 +102,8 @@ target_link_libraries(AimsOrchestrator PRIVATE sdl::sdl)
 
 # rapidYaml link
 target_link_libraries(AimsOrchestrator PRIVATE ryml::ryml)
+target_link_libraries(AimsOrchestrator PRIVATE pybind11::embed)
+target_compile_definitions(AimsOrchestrator PRIVATE AIMS_ENABLE_PYTHON_EMBED=1)
 
 set_target_properties(AimsOrchestrator PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 

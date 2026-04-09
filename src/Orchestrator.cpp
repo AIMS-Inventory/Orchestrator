@@ -10,6 +10,8 @@
 #include <SDL3/SDL.h>
 
 #include "imgui_internal.h"
+#include "events/PythonEventRegistrar.hpp"
+#include "events/DebugEventUI.hpp"
 #include "graphics/GraphicsInitialize.hpp"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/backends/imgui_impl_sdl3.h"
@@ -36,6 +38,7 @@ namespace aims
             has_graphics_context = true;
         }
         aims::load_cameras();
+        aims::PythonEventRegistrar::run_scripts();
     }
 
     void Orchestrator::run() {
@@ -104,7 +107,12 @@ namespace aims
 
             ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.25f, &dock_id_right, &dock_main_id);
 
-            ImGui::DockBuilderDockWindow("Options", dock_id_right);
+            ImGuiID dock_id_options;
+            ImGuiID dock_id_debug;
+            ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, &dock_id_debug, &dock_id_options);
+
+            ImGui::DockBuilderDockWindow("Options", dock_id_options);
+            ImGui::DockBuilderDockWindow("Debug", dock_id_debug);
             ImGui::DockBuilderDockWindow("Preview", dock_main_id);
 
             ImGui::DockBuilderFinish(dockspace_id);
@@ -149,6 +157,11 @@ namespace aims
             } else {
                 ImGui::Text("No active view selected.");
             }
+        }
+        ImGui::End();
+
+        if (ImGui::Begin("Debug")) {
+            DebugEventUI::render_ui();
         }
         ImGui::End();
 

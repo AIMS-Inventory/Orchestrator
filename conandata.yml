@@ -2,6 +2,7 @@
 # To keep your changes, remove these comment lines, but the plugin won't be able to modify your requirements
 
 requirements:
+  - "pybind11/3.0.1"
   - "rapidyaml/0.10.0"
   - "opencv/4.13.0"
   - "sdl/3.4.0"

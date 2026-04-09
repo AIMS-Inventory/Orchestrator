@@ -18,4 +18,5 @@ namespace aims {
     ryml::Tree parse_config(const std::string &path);
     std::shared_ptr<cv::VideoCapture> get_camera(std::string camera_name);
     std::vector<std::string> enumerate_cams();
+    std::vector<std::filesystem::path> enumerate_scripts();
 }

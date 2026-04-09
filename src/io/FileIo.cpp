@@ -15,6 +15,7 @@ namespace aims {
     static std::unordered_map<std::string, std::shared_ptr<cv::VideoCapture>> cameras;
     static std::filesystem::path app_path = std::filesystem::current_path();
     static std::filesystem::path DEFAULT_CONFIG_PATH = "resources/configs";
+    static std::filesystem::path SCRIPTS_PATH = "resources/scripts";
 
     std::vector<char> open_config_file(const std::string &path) {
         std::vector<char> data;
@@ -91,5 +92,25 @@ namespace aims {
         }
         return cam_list;
     }
+
+    std::vector<std::filesystem::path> enumerate_scripts() {
+        std::vector<std::filesystem::path> script_paths;
+        std::filesystem::path scripts_dir = app_path / SCRIPTS_PATH;
+
+        if (std::filesystem::exists(scripts_dir) && std::filesystem::is_directory(scripts_dir)) {
+            for (const auto& entry : std::filesystem::directory_iterator(scripts_dir)) {
+                if (entry.is_regular_file() && entry.path().extension() == ".py") {
+                    script_paths.push_back(entry.path());
+                } else {
+                    std::print("Not a python file '{}'\n", entry.path().string());
+                }
+            }
+        } else {
+            std::print("Scripts directory '{}' does not exist.\n", scripts_dir.string());
+        }
+
+        return script_paths;
+    }
+
 
 }

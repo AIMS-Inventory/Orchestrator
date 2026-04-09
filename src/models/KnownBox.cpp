@@ -17,4 +17,7 @@ namespace aims {
         std::lock_guard<std::recursive_mutex> lock(static_mutex);
         known_boxes.push_back(box);
     }
+
+    KnownBox::KnownBox(std::string name, int id) : box_name(std::move(name)), box_id(id) {
+    }
 } // aims
