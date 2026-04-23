@@ -153,7 +153,19 @@ namespace aims
             auto current_active_view = get_active_view();
             if (current_active_view) {
                 auto texture_handle = current_active_view->get_texture();
-                ImGui::Image((void*)(intptr_t)texture_handle.texture, ImVec2(512, 512));
+                float aspect_ratio = current_active_view->get_aspect_ratio();
+                ImVec2 available_size = ImGui::GetContentRegionAvail();
+                
+                // Calculate size to fit within available space while maintaining aspect ratio
+                float display_width = available_size.x;
+                float display_height = display_width / aspect_ratio;
+                
+                if (display_height > available_size.y) {
+                    display_height = available_size.y;
+                    display_width = display_height * aspect_ratio;
+                }
+                
+                ImGui::Image((void*)(intptr_t)texture_handle.texture, ImVec2(display_width, display_height));
             } else {
                 ImGui::Text("No active view selected.");
             }

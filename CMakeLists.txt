@@ -24,6 +24,10 @@ set(SOURCES
     src/events/PythonEventRegistrar.hpp
     src/events/DebugEventUI.cpp
     src/events/DebugEventUI.hpp
+    src/facial-recognition/FacialRecognition.cpp
+    src/facial-recognition/FacialRecognition.hpp
+    src/facial-recognition/PersonEntry.hpp
+    src/facial-recognition/MedicationCheckoutEvent.hpp
 )
 
 include_directories(extern/glad)

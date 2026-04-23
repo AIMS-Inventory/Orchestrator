@@ -112,5 +112,14 @@ namespace aims {
         return script_paths;
     }
 
+    std::filebuf get_filepath(const std::string &sub_path) {
+        std::filesystem::path full_path = app_path / sub_path;
+        std::filebuf file_buffer;
+        file_buffer.open(full_path, std::ios::in | std::ios::binary);
+        if (!file_buffer.is_open()) {
+            std::print("Failed to open file at path: {}\n", full_path.string());
+        }
+        return file_buffer;
+    }
 
 }

@@ -14,6 +14,7 @@ namespace cv {
 
 namespace aims {
     std::vector<char> open_config_file(const std::string &path);
+    std::filebuf get_filepath(const std::string &sub_path);
     void load_cameras();
     ryml::Tree parse_config(const std::string &path);
     std::shared_ptr<cv::VideoCapture> get_camera(std::string camera_name);
