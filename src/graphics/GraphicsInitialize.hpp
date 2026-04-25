@@ -20,6 +20,17 @@ namespace aims_graphx
 
     struct GpuTextureHandle {
         GLuint texture;
+        int width = 0;
+        int height = 0;
+    };
+
+    struct TextureResolution {
+        int width = 0;
+        int height = 0;
+
+        [[nodiscard]] float aspect_ratio() const {
+            return (height > 0) ? (static_cast<float>(width) / height) : 1.0f;
+        }
     };
 
     struct RGBTex {
@@ -39,5 +50,6 @@ namespace aims_graphx
     void imgui_set_colors();
 
     GpuTextureHandle& upload_rgb(const RGBTex& texture, std::string key);
+    [[nodiscard]] TextureResolution get_texture_resolution(const GpuTextureHandle& handle);
     RGBTex mat_to_rgbtex(const cv::Mat& mat);
 }

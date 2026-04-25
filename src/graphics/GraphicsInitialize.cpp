@@ -84,7 +84,13 @@ namespace aims_graphx
 
         if (it != texture_cache.end()) {
             glBindTexture(GL_TEXTURE_2D, it->second.texture);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture.width, texture.height, GL_RGB, GL_UNSIGNED_BYTE, texture.data.data());
+            if (it->second.width == texture.width && it->second.height == texture.height) {
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture.width, texture.height, GL_RGB, GL_UNSIGNED_BYTE, texture.data.data());
+            } else {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.width, texture.height, 0, GL_RGB, GL_UNSIGNED_BYTE, texture.data.data());
+            }
+            it->second.width = texture.width;
+            it->second.height = texture.height;
             return it->second;
         }
 
@@ -99,9 +105,13 @@ namespace aims_graphx
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.width, texture.height, 0, GL_RGB, GL_UNSIGNED_BYTE, texture.data.data());
 
-        GpuTextureHandle handle{gl_texture};
+        GpuTextureHandle handle{gl_texture, texture.width, texture.height};
         texture_cache[key] = handle;
         return texture_cache[key];
+    }
+
+    TextureResolution get_texture_resolution(const GpuTextureHandle& handle) {
+        return TextureResolution{handle.width, handle.height};
     }
 
     RGBTex mat_to_rgbtex(const cv::Mat& mat) {

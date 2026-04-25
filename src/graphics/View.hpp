@@ -18,6 +18,7 @@ namespace aims
         void new_from_cv(const cv::Mat& mat);
         aims_graphx::GpuTextureHandle get_texture();
         std::string get_id() const;
+        float get_aspect_ratio() const;
 
     protected:
         std::string view_id;
