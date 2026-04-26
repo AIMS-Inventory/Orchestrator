@@ -83,15 +83,19 @@ namespace aims {
 
     void KioskNetworkServer::on_message(std::shared_ptr<ix::ConnectionState> connectionState, const ix::WebSocketMessagePtr& msg) {
         if (msg->type == ix::WebSocketMessageType::Message) {
+            std::cout << "[DEBUG] Received message from client: " << msg->str << std::endl;
             try {
                 nlohmann::json payload = nlohmann::json::parse(msg->str);
                 std::string event_type = payload.value("event", "");
+                std::cout << "got event type: " << event_type << std::endl;
                 if (!event_type.empty()) {
-                    auto& all_listeners = PythonEventRegistrar::get_all_listeners();
-                    auto range = all_listeners.equal_range(event_type);
-                    for (auto it = range.first; it != range.second; ++it) {
+                    pybind11::gil_scoped_acquire acquire;
+                    std::cout << "[DEBUG] Dispatching event '" << event_type << "' to Python listeners." << std::endl;
+                    auto listeners = PythonEventRegistrar::get_listeners(event_type);
+                    std::cout << "found " << listeners.size() << " listeners." << std::endl;
+                    for (auto& listener : listeners) {
                         try {
-                            it->second(msg->str);
+                            listener(msg->str);
                         } catch (const std::exception& e) {
                             std::cerr << "Python event error: " << e.what() << std::endl;
                         }
