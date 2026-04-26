@@ -19,6 +19,7 @@
 #include "io/FileIo.hpp"
 #include "facial-recognition/FacialRecognition.hpp"
 #include "code-detection/CodeDetector.hpp"
+#include "pills/PillRecognition.hpp"
 
 namespace aims
 {
@@ -43,6 +44,7 @@ namespace aims
 
         FacialRecognition::initialize();
         CodeDetector::initialize();
+        PillRecognition::initialize();
 
         aims::PythonEventRegistrar::run_scripts();
     }
@@ -185,6 +187,8 @@ namespace aims
             FacialRecognition::draw_debug_ui();
             ImGui::Separator();
             CodeDetector::draw_debug_ui();
+            ImGui::Separator();
+            PillRecognition::draw_debug_ui();
         }
         ImGui::End();
 
@@ -231,6 +235,7 @@ namespace aims
     void Orchestrator::shutdown() {
         FacialRecognition::shutdown();
         CodeDetector::shutdown();
+        PillRecognition::shutdown();
 
         std::lock_guard<std::recursive_mutex> lock(mutex);
         aims_graphx::destroy(graphics_context);

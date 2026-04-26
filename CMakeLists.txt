@@ -31,6 +31,9 @@ set(SOURCES
     src/models/Code.hpp
     src/code-detection/CodeDetector.cpp
     src/code-detection/CodeDetector.hpp
+    src/pills/PillRecognition.cpp
+    src/pills/PillRecognition.hpp
+    src/pills/Pill.hpp
 )
 
 include_directories(extern/glad)

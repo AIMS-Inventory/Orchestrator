@@ -10,6 +10,7 @@ config:
 camera_use:
   facial_recognition: "default"
   code_detection: "default"
+  pill_detection_cam: "default"
 
 models:
   face_detection: resources/models/yunet.onnx
