@@ -15,6 +15,8 @@
 #include "../io/CameraInput.hpp"
 #include "../Orchestrator.hpp"
 #include <imgui.h>
+#include <pybind11/embed.h>
+#include <pybind11/stl.h>
 
 std::recursive_mutex FacialRecognition::mutex;
 std::thread* FacialRecognition::processing_thread = nullptr;
@@ -263,4 +265,18 @@ void FacialRecognition::main() {
             debug_view->new_from_cv(debug_frame);
         }
     }
+}
+
+PYBIND11_EMBEDDED_MODULE(aims_faces, m) {
+    namespace py = pybind11;
+
+    py::class_<PersonEntry>(m, "PersonEntry")
+        .def_readwrite("name", &PersonEntry::name)
+        .def_readwrite("id", &PersonEntry::id)
+        .def_readwrite("last_seen", &PersonEntry::last_seen)
+        .def_readwrite("confidence", &PersonEntry::confidence)
+        .def_readwrite("extra_info", &PersonEntry::extra_info);
+
+    m.def("get_people_on_screen", &FacialRecognition::get_people_on_screen, "Get all people currently detected on screen");
+    m.def("get_all_known_people", &FacialRecognition::get_all_known_people, "Get all known people");
 }

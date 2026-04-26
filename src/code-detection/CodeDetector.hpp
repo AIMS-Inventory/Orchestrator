@@ -18,6 +18,8 @@ public:
 
     static void draw_debug_ui();
 
+    static std::vector<Code> get_current_codes();
+
 protected:
     static std::recursive_mutex mutex;
     static std::thread* processing_thread;

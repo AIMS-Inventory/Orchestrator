@@ -14,6 +14,9 @@
 #include "../io/FileIo.hpp"
 #include "../io/CameraInput.hpp"
 
+#include <pybind11/embed.h>
+#include <pybind11/stl.h>
+
 std::recursive_mutex CodeDetector::mutex;
 std::thread* CodeDetector::processing_thread = nullptr;
 std::atomic<bool> CodeDetector::should_run = false;
@@ -45,6 +48,11 @@ void CodeDetector::draw_debug_ui() {
     for (const auto& c : current_codes) {
         ImGui::Text("Code ID: %d at (%.2f, %.2f)", c.id, c.location[0], c.location[1]);
     }
+}
+
+std::vector<Code> CodeDetector::get_current_codes() {
+    std::lock_guard<std::recursive_mutex> lock(mutex);
+    return current_codes;
 }
 
 void CodeDetector::main() {
@@ -102,4 +110,18 @@ void CodeDetector::main() {
             debug_view->new_from_cv(debug_frame);
         }
     }
+}
+
+PYBIND11_EMBEDDED_MODULE(aims_codes, m) {
+    namespace py = pybind11;
+
+    py::class_<cv::Vec2f>(m, "Vec2f")
+        .def_property("x", [](const cv::Vec2f& v) { return v[0]; }, [](cv::Vec2f& v, float x) { v[0] = x; })
+        .def_property("y", [](const cv::Vec2f& v) { return v[1]; }, [](cv::Vec2f& v, float y) { v[1] = y; });
+
+    py::class_<Code>(m, "Code")
+        .def_readwrite("id", &Code::id)
+        .def_readwrite("location", &Code::location);
+
+    m.def("get_codes_on_screen", &CodeDetector::get_current_codes, "Get all detected codes currently on screen");
 }
