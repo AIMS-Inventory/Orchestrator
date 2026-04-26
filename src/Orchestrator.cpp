@@ -17,6 +17,7 @@
 #include "imgui/backends/imgui_impl_sdl3.h"
 #include "io/CameraInput.hpp"
 #include "io/FileIo.hpp"
+#include "facial-recognition/FacialRecognition.hpp"
 
 namespace aims
 {
@@ -38,6 +39,9 @@ namespace aims
             has_graphics_context = true;
         }
         aims::load_cameras();
+
+        FacialRecognition::initialize();
+
         aims::PythonEventRegistrar::run_scripts();
     }
 
@@ -174,6 +178,13 @@ namespace aims
 
         if (ImGui::Begin("Debug")) {
             DebugEventUI::render_ui();
+            ImGui::Separator();
+
+            auto people = FacialRecognition::get_people_on_screen();
+            ImGui::Text("Faces detected: %zu", people.size());
+            for (const auto& p : people) {
+                ImGui::Text("Person: %s (Conf: %.2f)", p.name.c_str(), p.confidence);
+            }
         }
         ImGui::End();
 
@@ -231,6 +242,8 @@ namespace aims
     }
 
     void Orchestrator::shutdown() {
+        FacialRecognition::shutdown();
+
         std::lock_guard<std::recursive_mutex> lock(mutex);
         aims_graphx::destroy(graphics_context);
     }

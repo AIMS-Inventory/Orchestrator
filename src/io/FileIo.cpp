@@ -39,8 +39,8 @@ namespace aims {
 
     ryml::Tree parse_config(const std::string &path) {
         auto config_vals = open_config_file(path);
-        const ryml::substr config_str(config_vals.data(), config_vals.size());
-        return ryml::parse_in_place(config_str);
+        const ryml::csubstr config_str(config_vals.data(), config_vals.size());
+        return ryml::parse_in_arena(config_str);
     }
 
     void load_cameras() {

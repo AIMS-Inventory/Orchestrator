@@ -10,4 +10,7 @@ struct PersonEntry {
     std::string name;
     int id;
     cv::Mat face_encoding;
+    double last_seen;
+    double confidence;
+    std::string extra_info;
 };

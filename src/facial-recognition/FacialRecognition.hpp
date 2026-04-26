@@ -16,10 +16,14 @@ public:
     static void initialize();
     static void shutdown();
     static void main();
+
+    static std::vector<PersonEntry> get_people_on_screen();
+    static std::vector<PersonEntry> get_all_known_people();
+
 protected:
     static std::recursive_mutex mutex;
     static std::thread* processing_thread;
     static std::atomic<bool> should_run;
     static std::vector<PersonEntry> known_people;
+    static std::vector<PersonEntry> active_people;
 };
-

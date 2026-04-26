@@ -2,14 +2,16 @@ layout:
   name: example
 
 config:
-  camera_index: 1
   rest_host: localhost
   rest_port: 8000
   kiosk_event_ws_uri: "ws://localhost:3000"
   kiosk_event_ws_timeout_secs: 30
 
+camera_use:
+  facial_recognition: "default"
+
 models:
-  face_detection: ../extern/yunet.onnx
-  face_recognition: ../extern/sface.onnx
-  pill_detector: ../extern/astromed.onnx
-  pill_images_dir: ../extern/pill_images/
+  face_detection: resources/models/yunet.onnx
+  face_recognition: resources/models/sface.onnx
+  pill_detector: resources/models/astromed.onnx
+  pill_images_dir: resources/pill_images/

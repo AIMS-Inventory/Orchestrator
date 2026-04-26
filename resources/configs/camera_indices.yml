@@ -2,6 +2,6 @@
 
 cams:
   - name: default
-    index: 1
+    index: 0
   - name: overhead
-    index: 1
+    index: 0
