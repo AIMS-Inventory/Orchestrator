@@ -19,6 +19,9 @@ namespace aims {
         void start();
         void stop();
 
+        bool get_is_running() const;
+        int get_port();
+
     protected:
         void update_loop();
         void on_message(std::shared_ptr<ix::ConnectionState> connectionState, const ix::WebSocketMessagePtr& msg);

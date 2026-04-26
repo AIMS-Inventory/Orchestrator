@@ -22,20 +22,44 @@ namespace aims {
     }
 
     void KioskNetworkServer::start() {
-        if (is_running) return;
+        if (is_running) {
+            std::cout << "[DEBUG] KioskNetworkServer is already running." << std::endl;
+            return;
+        }
+        
+        std::cout << "[DEBUG] Attempting to listen on port 8001..." << std::endl;
+        auto res = server.listen();
+        if (!res.first) {
+            std::cerr << "[ERROR] KioskNetworkServer failed to listen: " << res.second << std::endl;
+            return;
+        }
+
         is_running = true;
         server.start();
         update_thread = std::thread(&KioskNetworkServer::update_loop, this);
-        std::cout << "KioskNetworkServer started" << std::endl;
+        std::cout << "[DEBUG] KioskNetworkServer started successfully." << std::endl;
     }
 
     void KioskNetworkServer::stop() {
-        if (!is_running) return;
+        if (!is_running) {
+            std::cout << "[DEBUG] KioskNetworkServer is already stopped." << std::endl;
+            return;
+        }
+        std::cout << "[DEBUG] Stopping KioskNetworkServer..." << std::endl;
         is_running = false;
         server.stop();
         if (update_thread.joinable()) {
             update_thread.join();
         }
+        std::cout << "[DEBUG] KioskNetworkServer stopped." << std::endl;
+    }
+
+    bool KioskNetworkServer::get_is_running() const {
+        return is_running;
+    }
+
+    int KioskNetworkServer::get_port() {
+        return server.getPort();
     }
 
     void KioskNetworkServer::update_loop() {

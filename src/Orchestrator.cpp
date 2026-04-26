@@ -145,6 +145,7 @@ namespace aims
             ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, &dock_id_debug, &dock_id_options);
 
             ImGui::DockBuilderDockWindow("Options", dock_id_options);
+            ImGui::DockBuilderDockWindow("Shelves", dock_id_options);
             ImGui::DockBuilderDockWindow("Debug", dock_id_debug);
             ImGui::DockBuilderDockWindow("Preview", dock_main_id);
 
@@ -182,6 +183,38 @@ namespace aims
         }
         ImGui::End();
 
+        if (ImGui::Begin("Shelves")) {
+            auto shelves = get_shelves();
+            for (const auto& shelf : shelves) {
+                if (ImGui::TreeNode(shelf.name.c_str())) {
+                    if (ImGui::TreeNode("Codes")) {
+                        for (const auto& [code, val] : shelf.codes) {
+                            ImGui::BulletText("%s: %d", code.c_str(), val);
+                        }
+                        ImGui::TreePop();
+                    }
+                    if (ImGui::TreeNode("Boxes")) {
+                        for (const auto& [pos, box] : shelf.boxes) {
+                            if (ImGui::TreeNode((std::string("Position: ") + pos).c_str())) {
+                                ImGui::Text("ID: %s", box.id.c_str());
+                                ImGui::Text("Crew: %s", box.crew.c_str());
+                                if (ImGui::TreeNode("Pills")) {
+                                    for (const auto& pill : box.pills) {
+                                        ImGui::BulletText("%s", pill.c_str());
+                                    }
+                                    ImGui::TreePop();
+                                }
+                                ImGui::TreePop();
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+                    ImGui::TreePop();
+                }
+            }
+        }
+        ImGui::End();
+
         if (ImGui::Begin("Preview")) {
             auto current_active_view = get_active_view();
             if (current_active_view) {
@@ -206,6 +239,23 @@ namespace aims
         ImGui::End();
 
         if (ImGui::Begin("Debug")) {
+            if (ImGui::CollapsingHeader("Network Server")) {
+                bool is_server_running = network_server.get_is_running();
+                ImGui::Text("Server Status: %s", is_server_running ? "Running" : "Stopped");
+                ImGui::Text("Server Port: %d", network_server.get_port());
+                
+                if (is_server_running) {
+                    if (ImGui::Button("Stop Server")) {
+                        network_server.stop();
+                    }
+                } else {
+                    if (ImGui::Button("Start Server")) {
+                        network_server.start();
+                    }
+                }
+            }
+            ImGui::Separator();
+
             DebugEventUI::render_ui();
             ImGui::Separator();
 
