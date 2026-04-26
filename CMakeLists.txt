@@ -28,6 +28,9 @@ set(SOURCES
     src/facial-recognition/FacialRecognition.hpp
     src/facial-recognition/PersonEntry.hpp
     src/facial-recognition/MedicationCheckoutEvent.hpp
+    src/models/Code.hpp
+    src/code-detection/CodeDetector.cpp
+    src/code-detection/CodeDetector.hpp
 )
 
 include_directories(extern/glad)

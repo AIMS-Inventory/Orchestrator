@@ -11,6 +11,7 @@
 #include "graphics/GraphicsInitialize.hpp"
 #include "graphics/View.hpp"
 #include "io/CameraInput.hpp"
+#include "models/Code.hpp"
 
 namespace aims
 {
@@ -30,6 +31,9 @@ namespace aims
         void push_view(const std::shared_ptr<View>& view);
         void pop_view(std::string id);
 
+        std::vector<Code> get_codes();
+        void set_codes(const std::vector<Code>& new_codes);
+
         static Orchestrator* get_instance();
     protected:
         std::vector<std::shared_ptr<View>> get_views_snapshot();
@@ -46,6 +50,8 @@ namespace aims
 
         std::shared_ptr<View> active_view;
         std::vector<std::shared_ptr<View>> views;
+
+        std::vector<Code> current_codes;
     };
 
     Orchestrator& orchestrator();

@@ -10,6 +10,7 @@
 
 namespace cv {
     class VideoCapture;
+    class Mat;
 }
 
 namespace aims {
@@ -18,6 +19,7 @@ namespace aims {
     void load_cameras();
     ryml::Tree parse_config(const std::string &path);
     std::shared_ptr<cv::VideoCapture> get_camera(std::string camera_name);
+    bool read_camera(const std::string& camera_name, cv::Mat& out_frame);
     std::vector<std::string> enumerate_cams();
     std::vector<std::filesystem::path> enumerate_scripts();
 }

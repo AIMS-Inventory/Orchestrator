@@ -196,16 +196,13 @@ void FacialRecognition::main() {
         std::print("Warning: Could not load face recognition model '{}': {}\n", face_rec_model, e.what());
     }
 
-    auto cap = aims::get_camera(config_cam);
-
     while (should_run) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        if (!cap || !cap->isOpened() || !face_detector || !face_recognizer)
+        if (!face_detector || !face_recognizer)
             continue;
 
         cv::Mat frame;
-        cap->read(frame);
-        if (frame.empty()) continue;
+        if (!aims::read_camera(config_cam, frame) || frame.empty()) continue;
 
         cv::Mat debug_frame = frame.clone();
 

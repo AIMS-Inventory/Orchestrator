@@ -7,12 +7,15 @@
 #include <ryml.hpp>
 #include <ryml_std.hpp>
 #include <print>
+#include <mutex>
+#include <opencv2/opencv.hpp>
 
 #include "../graphics/View.hpp"
 
 
 namespace aims {
     static std::unordered_map<std::string, std::shared_ptr<cv::VideoCapture>> cameras;
+    static std::recursive_mutex camera_mutex;
     static std::filesystem::path app_path = std::filesystem::current_path();
     static std::filesystem::path DEFAULT_CONFIG_PATH = "resources/configs";
     static std::filesystem::path SCRIPTS_PATH = "resources/scripts";
@@ -74,6 +77,7 @@ namespace aims {
     }
 
     std::shared_ptr<cv::VideoCapture> get_camera(std::string camera_name) {
+        std::lock_guard<std::recursive_mutex> lock(camera_mutex);
         auto it = cameras.find(camera_name);
         if (it != cameras.end()) {
             return it->second;
@@ -83,7 +87,17 @@ namespace aims {
         }
     }
 
+    bool read_camera(const std::string& camera_name, cv::Mat& out_frame) {
+        std::lock_guard<std::recursive_mutex> lock(camera_mutex);
+        auto cap = get_camera(camera_name);
+        if (!cap || !cap->isOpened()) {
+            return false;
+        }
+        return cap->read(out_frame);
+    }
+
     std::vector<std::string> enumerate_cams() {
+        std::lock_guard<std::recursive_mutex> lock(camera_mutex);
         std::vector<std::string> cam_list;
         for (const auto& [name, cap] : cameras) {
             if (cap && cap->isOpened()) {

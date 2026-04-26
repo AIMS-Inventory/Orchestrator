@@ -18,6 +18,7 @@
 #include "io/CameraInput.hpp"
 #include "io/FileIo.hpp"
 #include "facial-recognition/FacialRecognition.hpp"
+#include "code-detection/CodeDetector.hpp"
 
 namespace aims
 {
@@ -41,6 +42,7 @@ namespace aims
         aims::load_cameras();
 
         FacialRecognition::initialize();
+        CodeDetector::initialize();
 
         aims::PythonEventRegistrar::run_scripts();
     }
@@ -181,6 +183,8 @@ namespace aims
             ImGui::Separator();
 
             FacialRecognition::draw_debug_ui();
+            ImGui::Separator();
+            CodeDetector::draw_debug_ui();
         }
         ImGui::End();
 
@@ -214,21 +218,8 @@ namespace aims
     }
 
     void Orchestrator::add_camera_view(const std::shared_ptr<CameraInput>& cam_input) {
-        std::shared_ptr<cv::VideoCapture> cap = cam_input->get_camera();
-        if (!cap->isOpened()) {
-            std::print("Failed to open webcam\n");
-            return;
-        }
-
         cv::Mat test_image;
-
-        int retry_count = 0;
-        while (test_image.empty() && retry_count < 10) {
-            cap->read(test_image);
-            retry_count++;
-        }
-
-        if (test_image.empty()) {
+        if (!aims::read_camera(cam_input->get_camera_id(), test_image) || test_image.empty()) {
             std::print("Error: Grabbed an empty frame from the camera.\n");
             return;
         }
@@ -239,6 +230,7 @@ namespace aims
 
     void Orchestrator::shutdown() {
         FacialRecognition::shutdown();
+        CodeDetector::shutdown();
 
         std::lock_guard<std::recursive_mutex> lock(mutex);
         aims_graphx::destroy(graphics_context);
@@ -262,6 +254,16 @@ namespace aims
     std::shared_ptr<aims_graphx::GraphicsContext> Orchestrator::get_graphics_context() {
         std::lock_guard<std::recursive_mutex> lock(mutex);
         return has_graphics_context ? graphics_context : nullptr;
+    }
+
+    std::vector<Code> Orchestrator::get_codes() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return current_codes;
+    }
+
+    void Orchestrator::set_codes(const std::vector<Code>& new_codes) {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        current_codes = new_codes;
     }
 
     Orchestrator* Orchestrator::get_instance() {
