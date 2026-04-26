@@ -69,6 +69,7 @@ namespace aims
             }
 
         network_server.start();
+        std::cout << "Signal to start the server sent!" << std::endl;
 
         aims::PythonEventRegistrar::run_scripts();
     }

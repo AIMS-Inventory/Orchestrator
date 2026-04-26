@@ -26,6 +26,7 @@ namespace aims {
         is_running = true;
         server.start();
         update_thread = std::thread(&KioskNetworkServer::update_loop, this);
+        std::cout << "KioskNetworkServer started" << std::endl;
     }
 
     void KioskNetworkServer::stop() {
