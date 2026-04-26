@@ -14,6 +14,7 @@
 #include "../io/FileIo.hpp"
 #include "../io/CameraInput.hpp"
 #include "../Orchestrator.hpp"
+#include <imgui.h>
 
 std::recursive_mutex FacialRecognition::mutex;
 std::thread* FacialRecognition::processing_thread = nullptr;
@@ -135,6 +136,14 @@ std::vector<PersonEntry> FacialRecognition::get_people_on_screen() {
 std::vector<PersonEntry> FacialRecognition::get_all_known_people() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     return known_people;
+}
+
+void FacialRecognition::draw_debug_ui() {
+    std::lock_guard<std::recursive_mutex> lock(mutex);
+    ImGui::Text("Faces detected: %zu", active_people.size());
+    for (const auto& p : active_people) {
+        ImGui::Text("Person: %s (Conf: %.2f)", p.name.c_str(), p.confidence);
+    }
 }
 
 void FacialRecognition::shutdown() {

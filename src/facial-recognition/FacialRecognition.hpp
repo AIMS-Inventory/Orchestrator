@@ -20,6 +20,8 @@ public:
     static std::vector<PersonEntry> get_people_on_screen();
     static std::vector<PersonEntry> get_all_known_people();
 
+    static void draw_debug_ui();
+
 protected:
     static std::recursive_mutex mutex;
     static std::thread* processing_thread;
