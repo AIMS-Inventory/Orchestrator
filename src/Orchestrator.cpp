@@ -20,6 +20,8 @@
 #include "facial-recognition/FacialRecognition.hpp"
 #include "code-detection/CodeDetector.hpp"
 #include "pills/PillRecognition.hpp"
+#include <ryml.hpp>
+#include <ryml_std.hpp>
 
 namespace aims
 {
@@ -45,6 +47,28 @@ namespace aims
         FacialRecognition::initialize();
         CodeDetector::initialize();
         PillRecognition::initialize();
+
+        auto tree = aims::parse_config("layout_db.yml");
+        auto root = tree.rootref();
+        if (!root.invalid() && root.has_child("shelves") && root["shelves"].is_seq()) {
+            for (auto shelf_node : root["shelves"]) {
+                    Shelf s;
+                    if (shelf_node.has_child("name")) {
+                        shelf_node["name"] >> s.name;
+                    }
+                    if (shelf_node.has_child("codes") && shelf_node["codes"].is_map()) {
+                        for (auto code_node : shelf_node["codes"]) {
+                        std::string key(code_node.key().str, code_node.key().len);
+                        std::string val_str(code_node.val().str, code_node.val().len);
+                        int val = std::stoi(val_str);
+                        s.codes[key] = val;
+                        }
+                    }
+                    shelves.push_back(s);
+                }
+            }
+
+        network_server.start();
 
         aims::PythonEventRegistrar::run_scripts();
     }
@@ -233,6 +257,7 @@ namespace aims
     }
 
     void Orchestrator::shutdown() {
+        network_server.stop();
         FacialRecognition::shutdown();
         CodeDetector::shutdown();
         PillRecognition::shutdown();
@@ -269,6 +294,16 @@ namespace aims
     void Orchestrator::set_codes(const std::vector<Code>& new_codes) {
         std::lock_guard<std::recursive_mutex> lock(mutex);
         current_codes = new_codes;
+    }
+
+    std::vector<Box> Orchestrator::get_boxes() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return boxes;
+    }
+
+    std::vector<Shelf> Orchestrator::get_shelves() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return shelves;
     }
 
     Orchestrator* Orchestrator::get_instance() {

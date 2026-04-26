@@ -12,6 +12,9 @@
 #include "graphics/View.hpp"
 #include "io/CameraInput.hpp"
 #include "models/Code.hpp"
+#include "models/Box.hpp"
+#include "models/Shelf.hpp"
+#include "io/KioskNetworkServer.hpp"
 
 namespace aims
 {
@@ -26,6 +29,9 @@ namespace aims
         void shutdown();
 
         void add_camera_view(const std::shared_ptr<CameraInput>& cam_input);
+
+        std::vector<Box> get_boxes();
+        std::vector<Shelf> get_shelves();
 
         std::shared_ptr<View> get_view(std::string id);
         void push_view(const std::shared_ptr<View>& view);
@@ -47,6 +53,11 @@ namespace aims
         std::shared_ptr<aims_graphx::GraphicsContext> graphics_context;
         bool has_graphics_context = false;
         std::atomic<bool> should_run = true;
+
+        KioskNetworkServer network_server;
+
+        std::vector<Box> boxes;
+        std::vector<Shelf> shelves;
 
         std::shared_ptr<View> active_view;
         std::vector<std::shared_ptr<View>> views;

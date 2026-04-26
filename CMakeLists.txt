@@ -34,6 +34,10 @@ set(SOURCES
     src/pills/PillRecognition.cpp
     src/pills/PillRecognition.hpp
     src/pills/Pill.hpp
+    src/models/Box.hpp
+    src/models/Shelf.hpp
+    src/io/KioskNetworkServer.hpp
+    src/io/KioskNetworkServer.cpp
 )
 
 include_directories(extern/glad)
@@ -46,6 +50,9 @@ find_package(SDL3 REQUIRED)
 find_package(OpenCV REQUIRED)
 # rapidYaml
 find_package(ryml REQUIRED)
+
+find_package(nlohmann_json REQUIRED)
+find_package(ixwebsocket REQUIRED)
 
 set(PYBIND11_FINDPYTHON ON)
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
@@ -113,6 +120,8 @@ target_link_libraries(AimsOrchestrator PRIVATE sdl::sdl)
 # rapidYaml link
 target_link_libraries(AimsOrchestrator PRIVATE ryml::ryml)
 target_link_libraries(AimsOrchestrator PRIVATE pybind11::embed)
+target_link_libraries(AimsOrchestrator PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(AimsOrchestrator PRIVATE ixwebsocket::ixwebsocket)
 target_compile_definitions(AimsOrchestrator PRIVATE AIMS_ENABLE_PYTHON_EMBED=1)
 
 set_target_properties(AimsOrchestrator PROPERTIES COMPILE_WARNING_AS_ERROR ON)
