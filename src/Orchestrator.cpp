@@ -363,39 +363,34 @@ namespace aims
         return true;
     }
 
+    bool Orchestrator::clear_shelf(int shelf_code) {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        auto shelf_it = std::ranges::find_if(shelves, [shelf_code](const Shelf& shelf) {
+            return shelf.code == shelf_code;
+        });
+
+        if (shelf_it == shelves.end()) {
+            return false;
+        }
+
+        std::vector<std::string> box_ids_to_remove;
+        for (const auto& [pos, box] : shelf_it->boxes) {
+            box_ids_to_remove.push_back(box.id);
+        }
+        shelf_it->boxes.clear();
+
+        boxes.erase(std::remove_if(boxes.begin(), boxes.end(), [&box_ids_to_remove](const Box& existing_box) {
+            return std::find(box_ids_to_remove.begin(), box_ids_to_remove.end(), existing_box.id) != box_ids_to_remove.end();
+        }), boxes.end());
+
+        return true;
+    }
+
     void Orchestrator::shutdown() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        should_run = false;
         network_server.stop();
-        FacialRecognition::shutdown();
-        CodeDetector::shutdown();
-        PillRecognition::shutdown();
-
-        std::lock_guard<std::recursive_mutex> lock(mutex);
-        aims_graphx::destroy(graphics_context);
-    }
-
-    std::vector<std::shared_ptr<View>> Orchestrator::get_views_snapshot() {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
-        return views;
-    }
-
-    std::shared_ptr<View> Orchestrator::get_active_view() {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
-        return active_view;
-    }
-
-    void Orchestrator::set_active_view(const std::shared_ptr<View>& view) {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
-        active_view = view;
-    }
-
-    std::shared_ptr<aims_graphx::GraphicsContext> Orchestrator::get_graphics_context() {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
-        return has_graphics_context ? graphics_context : nullptr;
-    }
-
-    std::vector<Code> Orchestrator::get_codes() {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
-        return current_codes;
     }
 
     void Orchestrator::set_codes(const std::vector<Code>& new_codes) {
@@ -415,6 +410,31 @@ namespace aims
 
     Orchestrator* Orchestrator::get_instance() {
         return instance;
+    }
+
+    std::vector<std::shared_ptr<View>> Orchestrator::get_views_snapshot() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return views;
+    }
+
+    std::shared_ptr<View> Orchestrator::get_active_view() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return active_view;
+    }
+
+    void Orchestrator::set_active_view(const std::shared_ptr<View>& view) {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        active_view = view;
+    }
+
+    std::shared_ptr<aims_graphx::GraphicsContext> Orchestrator::get_graphics_context() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return graphics_context;
+    }
+
+    std::vector<Code> Orchestrator::get_codes() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return current_codes;
     }
 
     Orchestrator& orchestrator() {

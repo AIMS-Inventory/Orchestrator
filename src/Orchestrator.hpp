@@ -34,6 +34,9 @@ namespace aims
         bool register_box_to_shelf(int shelf_code, const std::string& position, const Box& box);
         bool unregister_box_from_shelf(int shelf_code, const std::string& position);
 
+        bool clear_shelf(int shelf_code);
+
+
         std::vector<Box> get_boxes();
         std::vector<Shelf> get_shelves();
 

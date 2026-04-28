@@ -74,6 +74,12 @@ PYBIND11_EMBEDDED_MODULE(aims_py, m) {
         .def_readwrite("id", &aims::Box::id)
         .def_readwrite("contents", &aims::Box::contents);
 
+    py::class_<aims::Shelf>(m, "Shelf")
+        .def(py::init<>())
+        .def_readwrite("name", &aims::Shelf::name)
+        .def_readwrite("code", &aims::Shelf::code)
+        .def_readwrite("boxes", &aims::Shelf::boxes);
+
     m.def("register_listener", &aims::PythonEventRegistrar::register_listener, "Register a Python listener for an event");
     m.def("register_box", [](int shelf_code, const std::string& position, const aims::Box& box) {
         py::gil_scoped_acquire acquire;
@@ -83,4 +89,16 @@ PYBIND11_EMBEDDED_MODULE(aims_py, m) {
         py::gil_scoped_acquire acquire;
         return aims::orchestrator().unregister_box_from_shelf(shelf_code, position);
     }, "Remove a box from a shelf position");
+    m.def("clear_shelf", [](int shelf_code) {
+        py::gil_scoped_acquire acquire;
+        return aims::orchestrator().clear_shelf(shelf_code);
+    }, "Clear all boxes from a shelf");
+    m.def("get_shelves", []() {
+        py::gil_scoped_acquire acquire;
+        return aims::orchestrator().get_shelves();
+    }, "Get all shelves with their current boxes");
+    m.def("get_boxes", []() {
+        py::gil_scoped_acquire acquire;
+        return aims::orchestrator().get_boxes();
+    }, "Get all boxes");
 }

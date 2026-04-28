@@ -7,14 +7,42 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
 #include "../events/PythonEventRegistrar.hpp"
+#include "../Orchestrator.hpp"
+#include "../facial-recognition/FacialRecognition.hpp"
+#include "../pills/PillRecognition.hpp"
+#include "FileIo.hpp"
+#include <ryml.hpp>
+#include <ryml_std.hpp>
 
 namespace aims {
 
     KioskNetworkServer::KioskNetworkServer() : server(8001, "0.0.0.0"), is_running(false) {
-        server.setOnClientMessageCallback([this](std::shared_ptr<ix::ConnectionState> connectionState, ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg) {
-            this->on_message(connectionState, msg);
+        server.setOnClientMessageCallback([this](const std::shared_ptr<ix::ConnectionState>& connectionState, ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg) {
+            this->on_message(connectionState, webSocket, msg);
         });
+
+        try {
+            auto tree = aims::parse_config("known_box_codes.yml");
+            auto root = tree.rootref();
+            if (!root.invalid() && root.has_child("boxes") && root["boxes"].is_seq()) {
+                for (auto node : root["boxes"]) {
+                    KnownBox kb;
+                    if (node.has_child("name")) {
+                        node["name"] >> kb.name;
+                    }
+                    if (node.has_child("code")) {
+                        std::string code_str;
+                        node["code"] >> code_str;
+                        kb.code = std::stoi(code_str);
+                    }
+                    known_boxes.push_back(kb);
+                }
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[ERROR] Failed to load known_box_codes.yml: " << e.what() << std::endl;
+        }
     }
 
     KioskNetworkServer::~KioskNetworkServer() {
@@ -67,21 +95,110 @@ namespace aims {
             std::this_thread::sleep_for(std::chrono::seconds(1));
 
             nlohmann::json packet;
+            // unknown_box_ids
             packet["unknown_box_ids"] = nlohmann::json::array();
+            auto codes = aims::orchestrator().get_codes();
+            auto shelves = aims::orchestrator().get_shelves();
+            auto boxes = aims::orchestrator().get_boxes();
+
+            std::unordered_set<std::string> known_box_ids;
+            for (const auto& box : boxes) {
+                known_box_ids.insert(box.id);
+            }
+            for (const auto& shelf : shelves) {
+                for (const auto& [_, box] : shelf.boxes) {
+                    known_box_ids.insert(box.id);
+                }
+            }
+
+            for (const auto& code : codes) {
+                bool is_shelf = false;
+                for (const auto& shelf : shelves) {
+                    if (shelf.code == code.id) {
+                        is_shelf = true;
+                        break;
+                    }
+                }
+                
+                const bool is_box = known_box_ids.contains(std::to_string(code.id));
+
+                if (!is_shelf && !is_box) {
+                    packet["unknown_box_ids"].push_back(code.id);
+                }
+            }
+
+            // recognized_faces
             packet["recognized_faces"] = nlohmann::json::object();
+            for (const auto& person : FacialRecognition::get_people_on_screen()) {
+                nlohmann::json person_json;
+                person_json["name"] = person.name;
+                person_json["id"] = person.id;
+                person_json["last_seen"] = person.last_seen;
+                person_json["confidence"] = person.confidence;
+                person_json["extra_info"] = person.extra_info;
+                packet["recognized_faces"][std::to_string(person.id)] = person_json;
+            }
+
+            // crew_info
             packet["crew_info"] = nlohmann::json::object();
+            for (const auto& person : FacialRecognition::get_all_known_people()) {
+                nlohmann::json person_json;
+                person_json["name"] = person.name;
+                person_json["id"] = person.id;
+                person_json["last_seen"] = person.last_seen;
+                person_json["confidence"] = person.confidence;
+                person_json["extra_info"] = person.extra_info;
+                packet["crew_info"][std::to_string(person.id)] = person_json;
+            }
+
+            // shelf_info
             packet["shelf_info"] = nlohmann::json::object();
+            for (const auto& shelf : shelves) {
+                nlohmann::json shelf_json;
+                shelf_json["name"] = shelf.name;
+                shelf_json["code"] = shelf.code;
+                
+                nlohmann::json boxes_json = nlohmann::json::object();
+                for (const auto& [pos, box] : shelf.boxes) {
+                    boxes_json[pos] = box.id;
+                }
+                shelf_json["boxes"] = boxes_json;
+                
+                packet["shelf_info"][std::to_string(shelf.code)] = shelf_json;
+            }
+
+            // box_info
             packet["box_info"] = nlohmann::json::object();
+            for (const auto& box : boxes) {
+                nlohmann::json box_json;
+                box_json["id"] = box.id;
+                nlohmann::json contents;
+                contents["placed_by"] = box.contents.placed_by;
+                contents["pills"] = box.contents.pills;
+                box_json["contents"] = contents;
+                
+                packet["box_info"][box.id] = box_json;
+            }
+
+            // known_boxes
+            packet["known_boxes"] = nlohmann::json::array();
+            for (const auto& kb : known_boxes) {
+                nlohmann::json kb_json;
+                kb_json["name"] = kb.name;
+                kb_json["code"] = kb.code;
+                packet["known_boxes"].push_back(kb_json);
+            }
 
             std::string payload = packet.dump();
 
-            for (auto client : server.getClients()) {
+            for (const auto& client : server.getClients()) {
                 client->sendText(payload);
             }
         }
     }
 
-    void KioskNetworkServer::on_message(std::shared_ptr<ix::ConnectionState> connectionState, const ix::WebSocketMessagePtr& msg) {
+    void KioskNetworkServer::on_message(const std::shared_ptr<ix::ConnectionState>& connectionState, ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg) {
+        (void)connectionState;
         if (msg->type == ix::WebSocketMessageType::Message) {
             std::cout << "[DEBUG] Received message from client: " << msg->str << std::endl;
             try {
@@ -89,6 +206,88 @@ namespace aims {
                 std::string event_type = payload.value("event", "");
                 std::cout << "got event type: " << event_type << std::endl;
                 if (!event_type.empty()) {
+                    if (event_type == "get_on_screen_pills") {
+                        nlohmann::json response;
+                        response["event"] = "on_screen_pills";
+
+                        if (payload.contains("request_id")) {
+                            response["request_id"] = payload["request_id"];
+                        }
+
+                        nlohmann::json pills_json = nlohmann::json::array();
+                        for (const auto& pill : PillRecognition::recognize_pills()) {
+                            nlohmann::json item;
+                            item["name"] = pill.name;
+                            item["quantity"] = pill.quantity;
+                            item["confidence"] = pill.confidence;
+                            item["bounds"] = {
+                                {"x", pill.bounds.x},
+                                {"y", pill.bounds.y},
+                                {"width", pill.bounds.width},
+                                {"height", pill.bounds.height}
+                            };
+                            pills_json.push_back(item);
+                        }
+
+                        response["pills"] = pills_json;
+                        webSocket.sendText(response.dump());
+                        return;
+                    }
+
+                    if (event_type == "clear_shelf") {
+                        nlohmann::json response;
+                        response["event"] = "clear_shelf_result";
+                        if (payload.contains("request_id")) {
+                            response["request_id"] = payload["request_id"];
+                        }
+                        int shelf_code = payload.value("shelf_code", -1);
+                        bool success = aims::orchestrator().clear_shelf(shelf_code);
+                        response["success"] = success;
+                        response["shelf_code"] = shelf_code;
+                        webSocket.sendText(response.dump());
+                        return;
+                    }
+
+                    if (event_type == "get_audit_logs") {
+                        nlohmann::json response;
+                        response["event"] = "audit_logs";
+                        if (payload.contains("request_id")) {
+                            response["request_id"] = payload["request_id"];
+                        }
+                        nlohmann::json logs = nlohmann::json::array();
+
+                        std::string audit_path = "/Users/marcostulic/CLionProjects/Orchestrator/aimsai/aimsys/system_audit_alpha.csv";
+                        std::ifstream file(audit_path);
+                        if (file.is_open()) {
+                            std::string line;
+                            if (std::getline(file, line)) { // skip header
+                                while (std::getline(file, line)) {
+                                    if (line.empty()) continue;
+                                    std::stringstream ss(line);
+                                    std::string item;
+                                    nlohmann::json log_entry;
+
+                                    if (std::getline(ss, item, ',')) log_entry["timestamp"] = item;
+                                    if (std::getline(ss, item, ',')) log_entry["crew_member_name"] = item;
+                                    if (std::getline(ss, item, ',')) log_entry["box_id"] = item;
+                                    if (std::getline(ss, item, ',')) log_entry["shelf_id"] = item;
+                                    if (std::getline(ss, item, ',')) log_entry["pill_type"] = item;
+                                    if (std::getline(ss, item, ',')) log_entry["pill_quantity_before"] = item;
+                                    if (std::getline(ss, item, ',')) log_entry["pill_quantity_after"] = item;
+                                    if (std::getline(ss, item, ',')) log_entry["registered_at"] = item;
+                                    if (std::getline(ss, item, ',')) log_entry["error_detail"] = item;
+
+                                    logs.push_back(log_entry);
+                                }
+                            }
+                        } else {
+                            std::cerr << "Failed to open audit file: " << audit_path << std::endl;
+                        }
+                        response["logs"] = logs;
+                        webSocket.sendText(response.dump());
+                        return;
+                    }
+
                     pybind11::gil_scoped_acquire acquire;
                     std::cout << "[DEBUG] Dispatching event '" << event_type << "' to Python listeners." << std::endl;
                     auto listeners = PythonEventRegistrar::get_listeners(event_type);
@@ -99,6 +298,94 @@ namespace aims {
                         } catch (const std::exception& e) {
                             std::cerr << "Python event error: " << e.what() << std::endl;
                         }
+                    }
+
+                    if (event_type == "register_box") {
+                        nlohmann::json response;
+                        response["event"] = "register_box_result";
+                        if (payload.contains("request_id")) {
+                            response["request_id"] = payload["request_id"];
+                        }
+
+                        std::string requested_box_id;
+                        if (payload.contains("box_id")) {
+                            if (payload["box_id"].is_string()) {
+                                requested_box_id = payload["box_id"].get<std::string>();
+                            } else if (payload["box_id"].is_number_integer()) {
+                                requested_box_id = std::to_string(payload["box_id"].get<long long>());
+                            } else if (payload["box_id"].is_number_unsigned()) {
+                                requested_box_id = std::to_string(payload["box_id"].get<unsigned long long>());
+                            } else {
+                                requested_box_id = payload["box_id"].dump();
+                            }
+                        }
+
+                        std::string requested_position;
+                        if (payload.contains("position")) {
+                            if (payload["position"].is_string()) {
+                                requested_position = payload["position"].get<std::string>();
+                            } else if (payload["position"].is_array() && payload["position"].size() >= 2) {
+                                requested_position = std::to_string(payload["position"][0].get<int>()) + "," + std::to_string(payload["position"][1].get<int>());
+                            } else {
+                                requested_position = payload["position"].dump();
+                            }
+                        }
+
+                        int requested_shelf_code = payload.value("shelf_code", -1);
+                        bool found = false;
+                        nlohmann::json registered_box_json;
+
+                        auto current_shelves = aims::orchestrator().get_shelves();
+                        for (const auto& shelf : current_shelves) {
+                            if (requested_shelf_code >= 0 && shelf.code != requested_shelf_code) {
+                                continue;
+                            }
+
+                            if (!requested_position.empty()) {
+                                auto it = shelf.boxes.find(requested_position);
+                                if (it != shelf.boxes.end() && (requested_box_id.empty() || it->second.id == requested_box_id)) {
+                                    registered_box_json["id"] = it->second.id;
+                                    registered_box_json["shelf_code"] = shelf.code;
+                                    registered_box_json["shelf_name"] = shelf.name;
+                                    registered_box_json["position"] = requested_position;
+                                    registered_box_json["contents"] = {
+                                        {"placed_by", it->second.contents.placed_by},
+                                        {"pills", it->second.contents.pills}
+                                    };
+                                    found = true;
+                                    break;
+                                }
+                            }
+
+                            for (const auto& [pos, box] : shelf.boxes) {
+                                if (!requested_box_id.empty() && box.id != requested_box_id) {
+                                    continue;
+                                }
+
+                                registered_box_json["id"] = box.id;
+                                registered_box_json["shelf_code"] = shelf.code;
+                                registered_box_json["shelf_name"] = shelf.name;
+                                registered_box_json["position"] = pos;
+                                registered_box_json["contents"] = {
+                                    {"placed_by", box.contents.placed_by},
+                                    {"pills", box.contents.pills}
+                                };
+                                found = true;
+                                break;
+                            }
+
+                            if (found) {
+                                break;
+                            }
+                        }
+
+                        response["success"] = found;
+                        response["registered_box"] = found ? registered_box_json : nlohmann::json(nullptr);
+                        if (!found) {
+                            response["error"] = "Box was not found on the requested shelf after registration.";
+                        }
+
+                        webSocket.sendText(response.dump());
                     }
                 }
             } catch (const std::exception& e) {

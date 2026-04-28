@@ -7,10 +7,15 @@
 #include <ixwebsocket/IXWebSocketServer.h>
 #include <thread>
 #include <atomic>
-#include <mutex>
 #include <string>
+#include <vector>
 
 namespace aims {
+    struct KnownBox {
+        std::string name;
+        int code;
+    };
+
     class KioskNetworkServer {
     public:
         KioskNetworkServer();
@@ -24,10 +29,12 @@ namespace aims {
 
     protected:
         void update_loop();
-        void on_message(std::shared_ptr<ix::ConnectionState> connectionState, const ix::WebSocketMessagePtr& msg);
+        void on_message(const std::shared_ptr<ix::ConnectionState>& connectionState, ix::WebSocket& webSocket, const ix::WebSocketMessagePtr& msg);
 
         ix::WebSocketServer server;
         std::thread update_thread;
         std::atomic<bool> is_running;
+        
+        std::vector<KnownBox> known_boxes;
     };
 }
