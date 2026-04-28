@@ -8,10 +8,14 @@
 #include <vector>
 
 namespace aims {
+    struct BoxContents {
+        std::string placed_by;
+        std::vector<std::string> pills;
+    };
+
     struct Box {
         std::string id;
-        std::vector<std::string> pills;
-        std::string crew;
+        BoxContents contents;
     };
 }
 

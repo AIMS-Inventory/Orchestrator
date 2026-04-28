@@ -6,8 +6,10 @@
 
 #include <iostream>
 #include <pybind11/embed.h>
+#include <pybind11/stl.h>
 #include <__filesystem/filesystem_error.h>
 
+#include "../Orchestrator.hpp"
 #include "../io/FileIo.hpp"
 
 namespace aims {
@@ -15,11 +17,13 @@ namespace aims {
     std::unordered_multimap<std::string, pybind11::function> PythonEventRegistrar::event_listeners;
 
     void PythonEventRegistrar::register_listener(const std::string &event_name, const pybind11::function &listener) {
+            pybind11::gil_scoped_acquire acquire;
             std::lock_guard<std::recursive_mutex> lock(mutex);
             event_listeners.emplace(event_name, listener);
     }
 
     std::vector<pybind11::function> PythonEventRegistrar::get_listeners(const std::string &event_name) {
+        pybind11::gil_scoped_acquire acquire;
         std::lock_guard<std::recursive_mutex> lock(mutex);
         std::vector<pybind11::function> listeners;
         auto range = event_listeners.equal_range(event_name);
@@ -34,6 +38,7 @@ namespace aims {
     }
 
     void PythonEventRegistrar::run_scripts() {
+        pybind11::gil_scoped_acquire acquire;
         std::lock_guard<std::recursive_mutex> lock(mutex);
 
         std::vector<std::filesystem::path> script_paths = aims::enumerate_scripts();
@@ -57,5 +62,25 @@ namespace aims {
 } // aims
 
 PYBIND11_EMBEDDED_MODULE(aims_py, m) {
+    namespace py = pybind11;
+
+    py::class_<aims::BoxContents>(m, "BoxContents")
+        .def(py::init<>())
+        .def_readwrite("placed_by", &aims::BoxContents::placed_by)
+        .def_readwrite("pills", &aims::BoxContents::pills);
+
+    py::class_<aims::Box>(m, "Box")
+        .def(py::init<>())
+        .def_readwrite("id", &aims::Box::id)
+        .def_readwrite("contents", &aims::Box::contents);
+
     m.def("register_listener", &aims::PythonEventRegistrar::register_listener, "Register a Python listener for an event");
+    m.def("register_box", [](int shelf_code, const std::string& position, const aims::Box& box) {
+        py::gil_scoped_acquire acquire;
+        return aims::orchestrator().register_box_to_shelf(shelf_code, position, box);
+    }, "Register a box at a shelf position");
+    m.def("unregister_box", [](int shelf_code, const std::string& position) {
+        py::gil_scoped_acquire acquire;
+        return aims::orchestrator().unregister_box_from_shelf(shelf_code, position);
+    }, "Remove a box from a shelf position");
 }

@@ -1,0 +1,63 @@
+---
+report_type: "AIMS Autonomous Prediction"
+forecasts:
+  Atorvastatin:
+    current_stock: 80
+    velocity_per_day: 0.00
+    days_until_depletion: -1
+    urgency: "LOW"
+    depletion_timestamp: null
+  Amoxicillin:
+    current_stock: 27
+    velocity_per_day: 18.00
+    days_until_depletion: 2
+    urgency: "CRITICAL"
+    depletion_timestamp: 1745548800
+  Metformin:
+    current_stock: 90
+    velocity_per_day: 60.00
+    days_until_depletion: 2
+    urgency: "CRITICAL"
+    depletion_timestamp: 1745556000
+  Lisinopril:
+    current_stock: 56
+    velocity_per_day: 19.20
+    days_until_depletion: 3
+    urgency: "CRITICAL"
+    depletion_timestamp: 1745685600
+  MODAFINIL:
+    current_stock: 48
+    velocity_per_day: 10.54
+    days_until_depletion: 5
+    urgency: "CRITICAL"
+    depletion_timestamp: 1714493600
+  MELATONIN:
+    current_stock: 94
+    velocity_per_day: 17.28
+    days_until_depletion: 6
+    urgency: "CRITICAL"
+    depletion_timestamp: 1714579984
+  Ibuprofen:
+    current_stock: 47
+    velocity_per_day: 3.00
+    days_until_depletion: 16
+    urgency: "MODERATE"
+    depletion_timestamp: 1746754800
+  Omeprazole:
+    current_stock: 38
+    velocity_per_day: 2.00
+    days_until_depletion: 19
+    urgency: "MODERATE"
+    depletion_timestamp: 1747071600
+  IBUPROFEN:
+    current_stock: 197
+    velocity_per_day: 1.50
+    days_until_depletion: 132
+    urgency: "LOW"
+    depletion_timestamp: 1725640000
+  VITAMIN-D:
+    current_stock: 498
+    velocity_per_day: 2.16
+    days_until_depletion: 231
+    urgency: "LOW"
+    depletion_timestamp: 1734130000

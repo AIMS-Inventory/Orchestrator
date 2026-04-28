@@ -43,6 +43,7 @@ namespace aims {
         ImGui::Separator();
 
         if (!selected_event.empty()) {
+            pybind11::gil_scoped_acquire acquire;
             auto listeners = PythonEventRegistrar::get_listeners(selected_event);
             ImGui::Text("Listeners for '%s': %zu", selected_event.c_str(), listeners.size());
 

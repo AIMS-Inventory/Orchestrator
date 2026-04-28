@@ -12,7 +12,7 @@
 namespace aims {
     struct Shelf {
         std::string name;
-        std::map<std::string, int> codes;
+        int code = 0;
         std::map<std::string, Box> boxes; // mapped by position
     };
 }

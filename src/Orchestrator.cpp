@@ -5,6 +5,7 @@
 #include "Orchestrator.hpp"
 #include "glad/gl.h"
 
+#include <algorithm>
 #include <print>
 #include <thread>
 #include <SDL3/SDL.h>
@@ -56,13 +57,10 @@ namespace aims
                     if (shelf_node.has_child("name")) {
                         shelf_node["name"] >> s.name;
                     }
-                    if (shelf_node.has_child("codes") && shelf_node["codes"].is_map()) {
-                        for (auto code_node : shelf_node["codes"]) {
-                        std::string key(code_node.key().str, code_node.key().len);
-                        std::string val_str(code_node.val().str, code_node.val().len);
-                        int val = std::stoi(val_str);
-                        s.codes[key] = val;
-                        }
+                    if (shelf_node.has_child("code")) {
+                        std::string code_str;
+                        shelf_node["code"] >> code_str;
+                        s.code = std::stoi(code_str);
                     }
                     shelves.push_back(s);
                 }
@@ -187,19 +185,14 @@ namespace aims
             auto shelves = get_shelves();
             for (const auto& shelf : shelves) {
                 if (ImGui::TreeNode(shelf.name.c_str())) {
-                    if (ImGui::TreeNode("Codes")) {
-                        for (const auto& [code, val] : shelf.codes) {
-                            ImGui::BulletText("%s: %d", code.c_str(), val);
-                        }
-                        ImGui::TreePop();
-                    }
+                    ImGui::Text("Code: %d", shelf.code);
                     if (ImGui::TreeNode("Boxes")) {
                         for (const auto& [pos, box] : shelf.boxes) {
                             if (ImGui::TreeNode((std::string("Position: ") + pos).c_str())) {
                                 ImGui::Text("ID: %s", box.id.c_str());
-                                ImGui::Text("Crew: %s", box.crew.c_str());
+                                ImGui::Text("Placed by: %s", box.contents.placed_by.c_str());
                                 if (ImGui::TreeNode("Pills")) {
-                                    for (const auto& pill : box.pills) {
+                                    for (const auto& pill : box.contents.pills) {
                                         ImGui::BulletText("%s", pill.c_str());
                                     }
                                     ImGui::TreePop();
@@ -305,6 +298,69 @@ namespace aims
 
         auto view = cam_input->get_view();
         view->new_from_cv(test_image);
+    }
+
+    bool Orchestrator::register_box_to_shelf(int shelf_code, const std::string& position, const Box& box) {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        auto shelf_it = std::ranges::find_if(shelves, [shelf_code](const Shelf& shelf) {
+            return shelf.code == shelf_code;
+        });
+
+        if (shelf_it == shelves.end()) {
+            return false;
+        }
+
+        auto remove_box_by_id_locked = [this](const std::string& box_id) {
+            boxes.erase(std::remove_if(boxes.begin(), boxes.end(), [&box_id](const Box& existing_box) {
+                return existing_box.id == box_id;
+            }), boxes.end());
+
+            for (auto& shelf : shelves) {
+                for (auto it = shelf.boxes.begin(); it != shelf.boxes.end();) {
+                    if (it->second.id == box_id) {
+                        it = shelf.boxes.erase(it);
+                    } else {
+                        ++it;
+                    }
+                }
+            }
+        };
+
+        if (auto existing_position = shelf_it->boxes.find(position); existing_position != shelf_it->boxes.end()) {
+            remove_box_by_id_locked(existing_position->second.id);
+        }
+
+        remove_box_by_id_locked(box.id);
+        shelf_it->boxes[position] = box;
+        boxes.push_back(box);
+        return true;
+    }
+
+    bool Orchestrator::unregister_box_from_shelf(int shelf_code, const std::string& position) {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        auto shelf_it = std::ranges::find_if(shelves, [shelf_code](const Shelf& shelf) {
+            return shelf.code == shelf_code;
+        });
+
+        if (shelf_it == shelves.end()) {
+            return false;
+        }
+
+        auto box_it = shelf_it->boxes.find(position);
+        if (box_it == shelf_it->boxes.end()) {
+            return false;
+        }
+
+        const std::string box_id = box_it->second.id;
+        shelf_it->boxes.erase(box_it);
+
+        boxes.erase(std::remove_if(boxes.begin(), boxes.end(), [&box_id](const Box& existing_box) {
+            return existing_box.id == box_id;
+        }), boxes.end());
+
+        return true;
     }
 
     void Orchestrator::shutdown() {

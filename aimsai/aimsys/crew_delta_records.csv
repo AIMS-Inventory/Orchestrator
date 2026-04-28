@@ -1,0 +1,6 @@
+timestamp,crew_member,box_id,shelf_id,pill_type,qty_before,qty_after,registered_at,error_detail
+1714120000,Dr. Elena Vance,BOX-C,SH-1,IBUPROFEN,200,199,1714120030,
+1714130000,Dr. Elena Vance,BOX-C,SH-2,VITAMIN-D,500,499,1714130045,
+1714206400,Dr. Elena Vance,BOX-C,SH-1,IBUPROFEN,199,198,1714206415,
+1714210000,Dr. Elena Vance,BOX-C,SH-2,VITAMIN-D,499,498,1714210020,
+1714292800,Dr. Elena Vance,BOX-C,SH-1,IBUPROFEN,198,197,1714292810,

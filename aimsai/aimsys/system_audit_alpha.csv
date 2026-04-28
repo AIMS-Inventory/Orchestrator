@@ -1,0 +1,11 @@
+timestamp,crew_member_name,box_id,shelf_id,pill_type,pill_quantity_before,pill_quantity_after,registered_at,error_detail
+1745401200,Alice Nguyen,BOX-001,SH-A1,Ibuprofen,50,47,1745401205,
+1745404800,Marcus Rivera,BOX-002,SH-B3,Amoxicillin,30,29,1745404812,
+1745408400,Priya Patel,BOX-001,SH-A1,Ibuprofen,47,47,1745408403,DISPENSE_FAIL_JAM
+1745412000,Alice Nguyen,BOX-003,SH-C2,Metformin,100,95,1745412009,
+1745415600,Jordan Kim,BOX-004,SH-A4,Lisinopril,60,58,1745415611,
+1745419200,Marcus Rivera,BOX-002,SH-B3,Amoxicillin,29,27,1745419220,
+1745422800,Priya Patel,BOX-005,SH-D1,Atorvastatin,80,80,1745422801,SENSOR_READ_ERROR
+1745426400,Jordan Kim,BOX-003,SH-C2,Metformin,95,90,1745426415,
+1745430000,Alice Nguyen,BOX-006,SH-B2,Omeprazole,40,38,1745430007,
+1745433600,Marcus Rivera,BOX-004,SH-A4,Lisinopril,58,56,1745433614,

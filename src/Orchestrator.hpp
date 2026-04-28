@@ -6,6 +6,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "graphics/GraphicsInitialize.hpp"
@@ -29,6 +30,9 @@ namespace aims
         void shutdown();
 
         void add_camera_view(const std::shared_ptr<CameraInput>& cam_input);
+
+        bool register_box_to_shelf(int shelf_code, const std::string& position, const Box& box);
+        bool unregister_box_from_shelf(int shelf_code, const std::string& position);
 
         std::vector<Box> get_boxes();
         std::vector<Shelf> get_shelves();
