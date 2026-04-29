@@ -106,6 +106,31 @@ add_custom_command(
 add_custom_target(sync_resources DEPENDS "${AIMS_ORCHESTRATOR_RESOURCE_STAMP}")
 add_dependencies(AimsOrchestrator sync_resources)
 
+# copy aimsai folder
+set(AIMS_ORCHESTRATOR_AIMSAI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/aimsai")
+set(AIMS_ORCHESTRATOR_RUNTIME_AIMSAI_DIR "$<TARGET_FILE_DIR:AimsOrchestrator>/aimsai")
+
+file(GLOB_RECURSE AIMS_ORCHESTRATOR_AIMSAI_FILES
+    CONFIGURE_DEPENDS
+    "${AIMS_ORCHESTRATOR_AIMSAI_DIR}/*"
+)
+
+set(AIMS_ORCHESTRATOR_AIMSAI_STAMP "${CMAKE_CURRENT_BINARY_DIR}/aimsai-sync.stamp")
+
+add_custom_command(
+    OUTPUT "${AIMS_ORCHESTRATOR_AIMSAI_STAMP}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${AIMS_ORCHESTRATOR_AIMSAI_DIR}"
+            "${AIMS_ORCHESTRATOR_RUNTIME_AIMSAI_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E touch "${AIMS_ORCHESTRATOR_AIMSAI_STAMP}"
+    DEPENDS ${AIMS_ORCHESTRATOR_AIMSAI_FILES}
+    COMMENT "Syncing aimsai to the runtime output directory"
+    VERBATIM
+)
+
+add_custom_target(sync_aimsai DEPENDS "${AIMS_ORCHESTRATOR_AIMSAI_STAMP}")
+add_dependencies(AimsOrchestrator sync_aimsai)
+
 # link imgui
 target_link_libraries(AimsOrchestrator PRIVATE imgui)
 

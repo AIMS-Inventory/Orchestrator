@@ -1,5 +1,7 @@
 import aims_py
 import json
+import time
+import os
 
 def register_box_handler(payload_str):
     print("Received register_box event:")
@@ -33,6 +35,15 @@ def register_box_handler(payload_str):
         success = aims_py.register_box(shelf_code, position_str, box)
         if success:
             print(f"Successfully registered box '{box_id_str}' at shelf {shelf_code}, position {position_str}")
+            log_path = "/Users/marcostulic/CLionProjects/Orchestrator/aimsai/aimsys/system_audit_alpha.csv"
+            try:
+                timestamp = int(time.time())
+                pill_type = pills[0] if pills else "None"
+                pill_qty = len(pills)
+                with open(log_path, 'a', newline='') as f:
+                    f.write(f"{timestamp},{placed_by},{box_id_str},{shelf_code},{pill_type},0,{pill_qty},{timestamp},\n")
+            except Exception as log_e:
+                print(f"Failed to write audit log: {log_e}")
         else:
             print(f"Failed to register box '{box_id_str}' - shelf code {shelf_code} not found")
 

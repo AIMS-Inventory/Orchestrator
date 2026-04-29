@@ -7,6 +7,7 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <cstdlib>
 #include <unordered_set>
 #include "../events/PythonEventRegistrar.hpp"
 #include "../Orchestrator.hpp"
@@ -256,7 +257,7 @@ namespace aims {
                         }
                         nlohmann::json logs = nlohmann::json::array();
 
-                        std::string audit_path = "/Users/marcostulic/CLionProjects/Orchestrator/aimsai/aimsys/system_audit_alpha.csv";
+                        std::string audit_path = "aimsai/aimsys/system_audit_alpha.csv";
                         std::ifstream file(audit_path);
                         if (file.is_open()) {
                             std::string line;
@@ -284,6 +285,88 @@ namespace aims {
                             std::cerr << "Failed to open audit file: " << audit_path << std::endl;
                         }
                         response["logs"] = logs;
+                        webSocket.sendText(response.dump());
+                        return;
+                    }
+
+                    if (event_type == "generate_aimsai_report") {
+                        nlohmann::json response;
+                        response["event"] = "generate_aimsai_report_result";
+                        if (payload.contains("request_id")) {
+                            response["request_id"] = payload["request_id"];
+                        }
+
+                        std::string filename = payload.value("filename", "report.csv");
+                        std::string content  = payload.value("content", "");
+                        std::string report_path = "aimsai/aimsys/" + filename;
+
+                        std::cout << "[AIMSAI] ── Report Generation Started ──────────────────" << std::endl;
+                        std::cout << "[AIMSAI] Filename  : " << filename << std::endl;
+                        std::cout << "[AIMSAI] Full path : " << report_path << std::endl;
+                        std::cout << "[AIMSAI] CSV size  : " << content.size() << " bytes" << std::endl;
+
+                        int row_count = 0;
+                        for (char c : content) { if (c == '\n') ++row_count; }
+                        if (row_count > 0) --row_count;
+                        std::cout << "[AIMSAI] CSV rows  : " << row_count << " (excl. header)" << std::endl;
+
+                        std::ofstream out(report_path);
+                        bool success = false;
+                        if (out.is_open()) {
+                            out << content;
+                            out.close();
+                            std::cout << "[AIMSAI] CSV written successfully." << std::endl;
+
+                            std::string exec_cmd = "cd aimsai && ./aims-ai";
+                            std::cout << "[AIMSAI] Launching : " << exec_cmd << std::endl;
+
+                            auto exec_start = std::chrono::steady_clock::now();
+                            int ret = std::system(exec_cmd.c_str());
+                            auto exec_end = std::chrono::steady_clock::now();
+                            long long elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(exec_end - exec_start).count();
+
+                            if (ret == 0) {
+                                std::cout << "[AIMSAI] aims-ai exited OK (code 0) in " << elapsed_ms << " ms." << std::endl;
+                                success = true;
+                            } else {
+                                std::cerr << "[AIMSAI] aims-ai exited with code " << ret << " after " << elapsed_ms << " ms." << std::endl;
+                            }
+                        } else {
+                            std::cerr << "[AIMSAI] Failed to open file for writing: " << report_path << std::endl;
+                        }
+
+                        std::cout << "[AIMSAI] Result    : " << (success ? "SUCCESS" : "FAILURE") << std::endl;
+                        std::cout << "[AIMSAI] ── Report Generation Complete ─────────────────" << std::endl;
+
+                        response["success"] = success;
+                        response["path"] = report_path;
+                        webSocket.sendText(response.dump());
+                        return;
+                    }
+
+                    if (event_type == "download_report") {
+                        nlohmann::json response;
+                        response["event"] = "report_data";
+                        if (payload.contains("request_id")) {
+                            response["request_id"] = payload["request_id"];
+                        }
+
+                        std::string forecast_path = "aimsai/forecasting/output.yaml";
+                        std::ifstream file(forecast_path);
+                        std::string content;
+                        bool success = false;
+
+                        if (file.is_open()) {
+                            std::ostringstream buffer;
+                            buffer << file.rdbuf();
+                            content = buffer.str();
+                            success = true;
+                        } else {
+                            std::cerr << "[ERROR] Failed to open forecast file: " << forecast_path << std::endl;
+                        }
+
+                        response["success"] = success;
+                        response["content"] = content;
                         webSocket.sendText(response.dump());
                         return;
                     }
@@ -383,6 +466,49 @@ namespace aims {
                         response["registered_box"] = found ? registered_box_json : nlohmann::json(nullptr);
                         if (!found) {
                             response["error"] = "Box was not found on the requested shelf after registration.";
+                        }
+
+                        webSocket.sendText(response.dump());
+                    }
+
+                    if (event_type == "remove_box") {
+                        nlohmann::json response;
+                        response["event"] = "remove_box_result";
+                        if (payload.contains("request_id")) {
+                            response["request_id"] = payload["request_id"];
+                        }
+
+                        std::string box_id;
+                        if (payload.contains("box_id")) {
+                            box_id = payload["box_id"].is_string()
+                                ? payload["box_id"].get<std::string>()
+                                : payload["box_id"].dump();
+                        }
+
+                        bool success = false;
+                        if (!box_id.empty()) {
+                            int found_shelf_code = -1;
+                            std::string found_position;
+                            auto current_shelves = aims::orchestrator().get_shelves();
+                            for (const auto& shelf : current_shelves) {
+                                for (const auto& [pos, box] : shelf.boxes) {
+                                    if (box.id == box_id) {
+                                        found_shelf_code = shelf.code;
+                                        found_position = pos;
+                                        break;
+                                    }
+                                }
+                                if (found_shelf_code >= 0) break;
+                            }
+                            if (found_shelf_code >= 0) {
+                                success = aims::orchestrator().unregister_box_from_shelf(found_shelf_code, found_position);
+                            }
+                        }
+
+                        response["success"] = success;
+                        response["box_id"] = box_id;
+                        if (!success) {
+                            response["error"] = "Box could not be removed or was not found.";
                         }
 
                         webSocket.sendText(response.dump());

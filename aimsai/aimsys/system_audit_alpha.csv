@@ -8,4 +8,6 @@ timestamp,crew_member_name,box_id,shelf_id,pill_type,pill_quantity_before,pill_q
 1745422800,Priya Patel,BOX-005,SH-D1,Atorvastatin,80,80,1745422801,SENSOR_READ_ERROR
 1745426400,Jordan Kim,BOX-003,SH-C2,Metformin,95,90,1745426415,
 1745430000,Alice Nguyen,BOX-006,SH-B2,Omeprazole,40,38,1745430007,
-1745433600,Marcus Rivera,BOX-004,SH-A4,Lisinopril,58,56,1745433614,
+1745433600,Marcus Rivera,BOX-004,SH-A4,Lisinopril,58,56,1745433614,1777427498,Unknown,43,12,None,0,0,1777427498,
+1777427663,marco,43,12,None,0,0,1777427663,
+1777428004,marco,43,12,None,0,0,1777428004,
